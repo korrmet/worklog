@@ -338,11 +338,27 @@ class core
         } break;
         
         case rec_type::comment:
-        { elapsed += delta;
-          curr_comments.push_back(rec_payload(rec));
+        { elapsed += delta; curr_comments.push_back(rec_payload(rec));
         } break;
         
         default: break; } }
+
+    if (!curr_comments.empty() && !curr_task.empty())
+    { if (!tasks.count(curr_task))
+      { tasks[curr_task].comments = curr_comments;
+        tasks[curr_task].elapsed = elapsed; }
+      else
+      { for (std::string comment : curr_comments)
+        { tasks[curr_task].comments.push_back(comment); }
+        tasks[curr_task].elapsed += elapsed; }
+
+      if (!tasks_daily.count(curr_task))
+      { tasks_daily[curr_task].comments = curr_comments;
+        tasks_daily[curr_task].elapsed = elapsed; }
+      else
+      { for (std::string comment : curr_comments)
+        { tasks_daily[curr_task].comments.push_back(comment); }
+        tasks_daily[curr_task].elapsed += elapsed; } }
 
     if (!tasks_daily.empty())
     { timestamp::hms_t summary = 0;
