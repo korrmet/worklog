@@ -127,7 +127,7 @@ class cli_parser
     "Usage: worklog (--file <filename>) (report opts)\n"
     "Options: [--file/-f]   specifies the file that would be used for storing\n"
     "                       log for this session. Optional, default file is\n"
-    "                       \"default_worklog\"\n"
+    "                       \"default.worklog\"\n"
     "         [--report/-r] creates report, if no additional keys specified\n"
     "                       prints report for today\n"
     "         [--date/-d]   creates report for specific date DD/MM/YYYY\n"
