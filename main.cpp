@@ -9,7 +9,7 @@
 #include <list>
 #include <map>
 
-#define VERSION "v0.1"
+#define VERSION "v0.2"
 
 namespace timestamp
 { time_t now() { return std::time(NULL); }
@@ -99,7 +99,7 @@ namespace timestamp
 class cli_parser
 { public:
   cli_parser(int argc, char** argv)
-    : path("default_worklog"),
+    : path("default.worklog"),
       help(false), report(false),
       begin(0), end(0)
   { for (int i = 1; i < argc; i++)
@@ -151,41 +151,88 @@ class tui_parser
 
     std::smatch match;
 
-    if      (MATCH(help_re)    || MATCH(h_re)) { help    = true; }
-    else if (MATCH(report_re)  || MATCH(r_re)) { report  = true; }
-    else if (MATCH(version_re) || MATCH(v_re)) { version = true; }
-    else if (MATCH(quit_re)    || MATCH(q_re)) { quit    = true; }
-    else if (MATCH(command_re)) { error = true;   payload = match[1].str(); }
-    else if (MATCH(task_re))    { task = true;    payload = match[1].str(); }
+    if      (MATCH(help_re)    || MATCH(h_re)) { help         = true; }
+    else if (MATCH(version_re) || MATCH(v_re)) { version      = true; }
+    else if (MATCH(quit_re)    || MATCH(q_re)) { quit         = true; }
+    else if (MATCH(report_re)  || MATCH(r_re))
+    { report = true; dmy_start = 0; dmy_end = 0; }
+    else if (MATCH(report_d_re) || MATCH(r_d_re))
+    { report = true;
+      dmy_start = timestamp::s2dmy(match[1].str());
+      dmy_end   = dmy_start; }
+    else if (MATCH(report_i_re) || MATCH(r_i_re))
+    { report = true;
+      dmy_start = timestamp::s2dmy(match[1].str());
+      dmy_end   = timestamp::s2dmy(match[2].str()); }
+    else if (MATCH(short_re) || MATCH(s_re))
+    { sreport = true; dmy_start = 0; dmy_end = 0; }
+    else if (MATCH(short_d_re) || MATCH(s_d_re))
+    { sreport = true;
+      dmy_start = timestamp::s2dmy(match[1].str());
+      dmy_end   = dmy_start; }
+    else if (MATCH(short_i_re) || MATCH(s_i_re))
+    { sreport = true;
+      dmy_start = timestamp::s2dmy(match[1].str());
+      dmy_end   = timestamp::s2dmy(match[2].str()); }
+    else if (MATCH(command_re)) { error   = true; payload = match[1].str(); }
+    else if (MATCH(task_re))    { task    = true; payload = match[1].str(); }
     else if (MATCH(comment_re)) { comment = true; payload = match[1].str(); } 
   }
 
-  bool error, help, report, version, quit, task, comment;
+  bool error, help, report, version, quit, task, comment, sreport;
+  timestamp::dmy_t dmy_start, dmy_end;
 
   std::string payload;
 
   const std::string help_desc =
-    ":help/:h    - this help\n"
-    ":report/:r  - make report for today\n"
-    ":version/:v - print version of the program\n"
-    ":quit/:q    - make 'LEAVE' record and exit the program\n";
+    "!<task name>                     - enter task name\n"
+    "<anything>                       - comment line\n"
+    ":help/:h                         - this help\n"
+    ":report/:r [<start> <end>]       - make report for today/specific date\n"
+    ":short report/:s [<start> <end>] - make short report\n"
+    ":version/:v                      - print version of the program\n"
+    ":quit/:q                         - exit the program\n";
 
   private:
-  const std::string command_re = ":(.*)";
-  const std::string report_re  = ": *report";
-  const std::string r_re       = ": *r";
-  const std::string version_re = ": *version";
-  const std::string v_re       = ": *v";
-  const std::string quit_re    = ":.*quit";
-  const std::string q_re       = ":.*q";
-  const std::string help_re    = ":.*help";
-  const std::string h_re       = ":.*h";
-  const std::string task_re    = "! *(.+)";
-  const std::string comment_re = " *(.+)";
+  const std::string command_re  = ":(.*)";
+  const std::string report_re   = ": *report *";
+  const std::string report_d_re = ": *report"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4}) *";
+  const std::string report_i_re = ": *report"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4})"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4}) *";
+  const std::string r_re        = ": *r";
+  const std::string r_d_re      = ": *r"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4}) *";
+  const std::string r_i_re      = ": *r"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4})"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4}) *";
+  const std::string short_re    = ": *short *report *";
+  const std::string short_d_re  = ": *short *report *"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4}) *";
+  const std::string short_i_re  = ": *short *report"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4}) *"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4}) *";
+  const std::string s_re        = ": *s *";
+  const std::string s_d_re      = ": *s"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4})";
+  const std::string s_i_re      = ": *s"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4}) *"
+                                  " *([0-9]{2}/[0-9]{2}/[0-9]{4}) *";
+  const std::string version_re  = ": *version *";
+  const std::string v_re        = ": *v *";
+  const std::string quit_re     = ":.*quit *";
+  const std::string q_re        = ":.*q *";
+  const std::string help_re     = ":.*help *";
+  const std::string h_re        = ":.*h *";
+  const std::string task_re     = "! *(.+) *";
+  const std::string comment_re  = " *(.+) *";
 
   void clear()
   { error = false; help = false; version = false; quit = false; task = false;
-    comment = false; report = false; payload.clear(); }
+    comment = false; report = false; sreport = false;
+    dmy_start = 0; dmy_end = 0;
+    payload.clear(); }
 };
 
 class log_file
@@ -235,7 +282,9 @@ class core
   void comment(std::string p) { day_edge(); lf.append(record("comment", p)); }
   void task(std::string p) { day_edge(); lf.append(record("task", p)); }
 
-  std::string report(timestamp::dmy_t start = 0, timestamp::dmy_t end = 0)
+  std::string report(timestamp::dmy_t start = 0,
+                     timestamp::dmy_t end = 0,
+                     bool sreport = false)
   { if (!start) { start = timestamp::time2dmy(timestamp::now()); }
     if (!end)   { end   = timestamp::time2dmy(timestamp::now()); }
 
@@ -278,6 +327,7 @@ class core
         { summary += i->second.elapsed;
           out.append("Task ").append(i->first.c_str()).append(": ")
              .append(timestamp::hms2s(i->second.elapsed)).append("\n");
+          if (sreport) { continue; }
           for (std::string comment : i->second.comments)
           { out.append("  - ").append(comment).append("\n"); } }
         out.append("Summary: ").append(timestamp::hms2s(summary)).append("\n");
@@ -369,6 +419,7 @@ class core
       { summary += i->second.elapsed;
         out.append("Task ").append(i->first.c_str()).append(": ")
            .append(timestamp::hms2s(i->second.elapsed)).append("\n");
+        if (sreport) { continue; }
         for (std::string comment : i->second.comments)
         { out.append("  - ").append(comment).append("\n"); } }
       out.append("Summary: ").append(timestamp::hms2s(summary)).append("\n");
@@ -382,6 +433,7 @@ class core
            i != tasks.end(); i++)
       { out.append("Task ").append(i->first.c_str()).append(": ")
            .append(timestamp::hms2s(i->second.elapsed)).append("\n");
+        if (sreport) { continue; }
         for (std::string comment : i->second.comments)
         { out.append("  - ").append(comment).append("\n"); } } }
 
@@ -419,16 +471,17 @@ class core
   void day_edge()
   { std::string line = lf.last_line();
     std::smatch match;
-    if (std::regex_match(line, match, std::regex("\\[(.+)\\]\\[.+\\]\\[.+\\]"))
+    if (std::regex_match(line, match, std::regex("\\[(.+)\\]\\[(.+)\\]\\[.+\\]"))
         ||
-        std::regex_match(line, match, std::regex("\\[(.+)\\]\\[.+\\]")))
-    { timestamp::dmy_t last = timestamp::s2dmy(match[1].str());
-      timestamp::dmy_t now  = timestamp::time2dmy(timestamp::now());
-      if (last != now)
-      { std::string rec_last;
-        rec_last.append("[").append(timestamp::dmy2s(last))
-                .append(" 23:59:59][end]");
-        lf.append(rec_last); } } }
+        std::regex_match(line, match, std::regex("\\[(.+)\\]\\[(.+)\\]")))
+    { if (match[2].str() != "end")
+      { timestamp::dmy_t last = timestamp::s2dmy(match[1].str());
+        timestamp::dmy_t now  = timestamp::time2dmy(timestamp::now());
+        if (last != now)
+        { std::string rec_last;
+          rec_last.append("[").append(timestamp::dmy2s(last))
+                  .append(" 23:59:59][end]");
+          lf.append(rec_last); } } } }
 
   std::string rec_payload(std::string rec)
   { std::string result; std::smatch match;
@@ -475,8 +528,9 @@ int main(int argc, char** argv)
 
   c.begin();
   tui_parser tp;
+  std::string curr_task;
   while (true)
-  { std::printf("> ");
+  { std::printf("%s > ", curr_task.c_str());
     std::string line; std::getline(std::cin, line); tp.parse(line);
     if (tp.error)        { std::printf("Error: %s\n", tp.payload.c_str());
                            std::printf("Use \":help\" to get help\n"); }
@@ -485,8 +539,11 @@ int main(int argc, char** argv)
     else if (tp.version) { std::printf("%s\n", VERSION); }
     else if (tp.quit)    { c.end(); break; }
 
-    else if (tp.report)  { std::printf("%s", c.report().c_str()); }
-    else if (tp.task)    { c.task(tp.payload); }
+    else if (tp.report)  { std::printf("%s", c.report(tp.dmy_start,
+                                                      tp.dmy_end).c_str()); }
+    else if (tp.sreport) { std::printf("%s", c.report(tp.dmy_start,
+                                                      tp.dmy_end, 1).c_str()); } 
+    else if (tp.task)    { c.task(tp.payload); curr_task = tp.payload; }
     else if (tp.comment) { c.comment(tp.payload); } }
 
   return 0; }
